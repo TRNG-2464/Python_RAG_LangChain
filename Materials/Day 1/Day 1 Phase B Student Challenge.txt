@@ -1,0 +1,69 @@
+Day 1 Phase B: Student Challenge 
+
+— Business Question #2 (Team Mismatch Report)
+ 
+**The Delta:** The demo answered Business Question #1 (Stale
+Documentation Report). Your challenge is to answer **Business Question
+#2**:
+ 
+> *How many open tickets are assigned to an engineer who is NOT on the
+> same team as the owner of the document that ticket relates to?*
+ 
+`Document.owner_id` and `Ticket.assignee_id` are both bare integers —
+there's no `User` class yet, even though every document has an owner
+and every ticket has an assignee. You'll add it.
+ 
+### Requirements
+ 
+1. Create a new module `app\models\user.py` containing a `User` class
+   with `id`, `name`, and `team` attributes, following the same
+   pattern as `Document`/`Ticket`/`Comment` (a `registry` class
+   attribute, a `find_by_id` classmethod, a `__repr__`). Use the same
+   3.10+ typing style shown above: `ClassVar[list["User"]]` and
+   `"User | None"` as the return type, not `typing.List` /
+   `typing.Optional`.
+2. Register `User` in `app\models\__init__.py` so it can be imported as
+   `from app.models import User`.
+3. Write a function `find_team_mismatches(tickets, documents, users)`
+   in `scripts\day1_demo.py` that returns every `Ticket` where the
+   assignee's `team` does not match the `team` of the user who owns
+   the ticket's related document.
+4. Update `seed_demo_data()` to create at least three `User` instances
+   — including one team-matched pair (assignee and document owner on
+   the same team) and one mismatched pair — so the function has
+   something real to catch.
+5. Add a new section to `main()` that prints each mismatch in a
+   readable format, e.g.:
+```
+   == Team Mismatch Report ==
+     Ticket 1 ('Runbook missing rollback step'): assignee B. Osei (Platform), doc owner A. Kim (SRE)
+```
+ 
+### Constraints
+ 
+- Reuse the existing `find_by_id` pattern already established on
+  `Document` and `Ticket` — don't write a different lookup style for
+  `User`.
+- Your function must work with **any** list of tickets/documents/users
+  passed in, not just the seeded demo data (i.e., don't hardcode IDs
+  inside the function itself).
+- Skip any ticket whose `related_document_id` is `None` — a ticket with
+  no related document has nothing to compare against.
+- Stick to Python 3.10+ syntax throughout — no `typing.Optional`,
+  `typing.List`, or `typing.Union` imports anywhere in your new code.
+### Research Prompts
+ 
+- Look up Python's `enum.Enum` docs and consider: should `User` have a
+  `role` field using an Enum? (Not required — just think about where
+  else in this model set an Enum would make sense.)
+- Compare a list comprehension (`[x for x in y if ...]`) to writing the
+  same logic with an explicit `for` loop and `if` — which reads clearer
+  for a 3-way lookup like this one?
+- Skim the `dataclasses` module in the standard library. These classes
+  currently write `__init__` and `__repr__` by hand — a `@dataclass`
+  decorator can generate both automatically. Don't refactor to it yet
+  (we're building OOP muscle memory first), but note how much
+  boilerplate it would remove.
+- Look up PEP 604 (the `X | None` syntax) and PEP 585 (built-in
+  generics like `list[int]` instead of `typing.List[int]`) to see
+  exactly which Python version introduced each.
