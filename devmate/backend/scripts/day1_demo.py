@@ -6,7 +6,45 @@ run this file from the /backend directory using the following command:
 
 from datetime import date, timedelta
 
-from app.models import Document, Ticket, Comment, DocumentCategory, TicketPriority
+from app.models import Document, Ticket, Comment, DocumentCategory, TicketPriority, User
+
+def find_team_mismatches(
+        tickets: list[Ticket],
+        documents: list[Document],
+        users: list[User]
+) -> list[tuple[Ticket, Document, User, User]]:
+    """
+    Day 1 phase b challenge answer key - answers business question #2
+    team mismatch report - which tickets are assigned to a user whose team does NOT
+    match the team of the user who owns the ticket's related document?
+    """
+    mismatches: list[tuple[Ticket, Document, User, User]] = []
+
+    for ticket in tickets:
+        if ticket.related_document_id is None:
+            continue
+
+        document = Document.find_by_id(ticket.related_document_id)
+        assignee = User.find_by_id(ticket.assignee_id)
+
+        """
+        Defensive guard: a ticket that references a document_id or assignee_id
+        that does not exist in the registry isn't a team mismatch, it is a data
+        integrity issue. Here, we will skip it and add in a validation check later when
+        we work with Pydantic
+        """
+        if document is None or assignee is None:
+            continue
+
+        owner = User.find_by_id(document.owner_id)
+        if owner is None:
+            continue
+
+        if assignee.team != owner.team:
+            mismatches.append((ticket, document, assignee, owner))
+
+    return mismatches
+
 
 def find_stale_documents(documents: list[Document], threshold: int = 90) -> list[Document]:
     """
@@ -43,6 +81,11 @@ def seed_demo_data() -> None:
 
     Comment(1, ticket_id=1, author_id=301, body="Confirmed - step 4 references a script that no longer exists.")
 
+    User(301, "A. Kim", team="SRE")
+    User(302, "B. Osei", team="Platform")
+    User(303, "C. Diaz", team="SRE")
+    User(304, "D. Farah", team="SRE")
+
 
 
 def main() -> None:
@@ -60,6 +103,15 @@ def main() -> None:
         print (f" STALE: {document.title!r} last reviewed "
                f"{document.days_since_last_reviewed()} days ago"
                f"({document.category.value})")
+
+    print("\n== Team Mismatch Report ==")
+    mismatches = find_team_mismatches(Ticket.registry, Document.registry, User.registry)
+    if not mismatches:
+        print(" No Mismatches Found ")
+    for ticket, document, assignee, owner in mismatches:
+        print(f"Ticket {ticket.id} ({ticket.title!r}) : "
+              f"assignee {assignee.name} ({assignee.team}), "
+              f"doc owner {owner.name} ({owner.team})")
 
 if __name__ == "__main__":
     """
