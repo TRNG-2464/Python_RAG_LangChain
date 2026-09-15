@@ -19,3 +19,5 @@ rely on, just without the 'throws' keyword
 class UnsupportedFileTypeError(DocumentLoadError):
     "A file in docs/ isn't a type of document our loader can process"
 
+class TicketLoadError(Exception):
+    """Something went wrong turning a tickets.csv row into a Ticket"""

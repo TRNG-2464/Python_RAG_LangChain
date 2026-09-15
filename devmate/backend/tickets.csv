@@ -1,0 +1,6 @@
+id,title,priority,status,assignee_id,related_document_id
+1,Runbook missing rollback step,High,Open,302,1
+2,Wiki page has broken links,Low,Open,304,4
+3,Auth Key rotation follow-up,Medium,Open,301,5
+4,Missing priority value,,Open,302,2
+5,Bad status value,Low,Blocked,301,1
