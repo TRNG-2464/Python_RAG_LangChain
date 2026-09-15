@@ -2,6 +2,9 @@
 Demo script: Devmate
 Run from the /backend directory using the following command:
     python -m scripts.day2_demo
+
+Falsey values: 0, null, None, NoneType, empty strings, empty lists(any empty collection)    
+Truthy values: everything else
 """
 
 from app.models import Document, DocumentCategory, Ticket, User
