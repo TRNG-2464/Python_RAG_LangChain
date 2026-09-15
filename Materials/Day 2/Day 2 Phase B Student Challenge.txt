@@ -1,0 +1,74 @@
+Day 2 Phase B: Student Challenge 
+— Business Question #2, Revisited (Ticket File Loading)
+ 
+**The Delta:** The demo replaced hardcoded `Document` data with real
+files. Your challenge is to do the same thing for `Ticket` data — but
+from a **CSV file** instead of markdown, so you get practice with a
+different file format and Python's built-in `csv` module. Once tickets
+load from a file too, re-run **Business Question #2** (the Team
+Mismatch Report from Day 1) against real, file-backed data instead of
+a hardcoded `seed_demo_data()` call.
+ 
+> *Which open tickets are assigned to an engineer outside the team
+> that owns the document the ticket relates to — now computed from a
+> CSV file of tickets, not Python code?*
+ 
+### Requirements
+ 
+1. Add a new exception `TicketLoadError` to `app\core\exceptions.py`,
+   following the same pattern as `DocumentLoadError` — it should be
+   its own distinct type, catchable on its own with
+   `except TicketLoadError:`.
+2. Create `backend\tickets.csv` with a header row
+   (`id,title,priority,status,assignee_id,related_document_id`) and at
+   least 5 data rows: at least 3 valid tickets (including one that
+   produces a team mismatch and at least one that doesn't) and at
+   least 2 deliberately invalid rows — one with a bad `priority` value
+   and one with a bad `status` value, to give your exception handling
+   something to actually catch.
+3. Create `app\ingestion\ticket_loader.py` with a function
+   `load_tickets_from_csv(csv_path)` that reads the CSV with Python's
+   built-in `csv.DictReader`, converts each row into a `Ticket`, and
+   raises `TicketLoadError` (with a message naming the bad field) for
+   any row with an invalid `priority`, invalid `status`, or a
+   non-integer `id` / `assignee_id` / `related_document_id`.
+4. Loop over the CSV rows so that **one bad row doesn't stop the
+   others from loading** — catch `TicketLoadError` per row, print a
+   `SKIPPED` message (matching the style of the document loader), and
+   continue.
+5. Update `scripts\day2_demo.py` (or a copy of it) to: load documents
+   from `docs\` (already done), load tickets from `tickets.csv`
+   (your new function), reuse the existing hardcoded `User` records
+   from Day 1, and call Day 1's `find_team_mismatches(tickets,
+   documents, users)` against this now-mostly-file-backed data. Print
+   the results the same way Day 1 did.
+### Constraints
+ 
+- `related_document_id` can legitimately be blank in a CSV row (no
+  related document) — that should become `None`, not a crash and not
+  a `TicketLoadError`. Only a non-blank value that *isn't* a valid
+  integer should raise.
+- Reuse `TicketPriority` and `TicketStatus` from `app\models\enums.py`
+  to validate the CSV's `priority` and `status` columns — don't invent
+  a second, separate way to check "is this a valid priority."
+- Stick to Python 3.10+ syntax throughout, same as every prior day.
+- Don't modify `find_team_mismatches` itself — if today's loaders are
+  built correctly, the function from Day 1 should work against
+  file-loaded data completely unchanged.
+### Research Prompts
+ 
+- Look up `csv.DictReader` vs. plain `csv.reader` — what does
+  `DictReader` give you for free that you'd otherwise have to build by
+  hand (matching column headers to values)?
+- `_parse_frontmatter` in today's demo used `str.partition`. Compare
+  that to `str.split(":", 1)` — could you rewrite the CSV row
+  validation using either, and which reads more clearly for this case?
+- Every `except ValueError as exc: raise TicketLoadError(...) from exc`
+  block in the document loader follows the same shape. Could this be
+  pulled into a shared helper function that both `document_loader.py`
+  and `ticket_loader.py` call? What would that helper's signature need
+  to look like to work for both?
+- Skim Python's `csv` module docs for `csv.Sniffer` — a tool that
+  guesses a CSV's format automatically. Not needed for this challenge
+  (we control the file), but worth knowing it exists for CSVs of
+  unknown origin.
