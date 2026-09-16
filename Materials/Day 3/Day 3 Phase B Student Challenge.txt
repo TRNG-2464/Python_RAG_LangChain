@@ -1,0 +1,68 @@
+Day 3 Phase B: Student Challenge 
+— Business Question #2 Over HTTP
+ 
+**The Delta:** The demo exposed Business Question #1 as
+`GET /documents/stale`. Your challenge is to do the same for Business
+Question #2 — the Team Mismatch Report — as `GET /tickets/mismatches`.
+ 
+### Requirements
+ 
+1. Add `TicketOut` and `MismatchOut` schemas to `api\schemas.py`.
+   `TicketOut` should use `from_attributes=True` like `DocumentOut`
+   (a `Ticket` object's fields map directly). `MismatchOut` needs
+   `ticket_id`, `ticket_title`, `assignee_name`, `assignee_team`,
+   `owner_name`, and `owner_team` — since a mismatch isn't one object,
+   it has to be built by hand from four different objects, the same
+   way `StaleDocumentOut` was.
+2. Extend `KnowledgeBaseService` in `api\deps.py` to also load tickets
+   (`load_tickets_from_csv("tickets.csv")`) and seed the same four
+   `User` records Day 2 used, and add a `get_team_mismatches()` method
+   that calls the *existing, unmodified* mismatch-finding function
+   from Day 2.
+3. Create `app\api\routers\tickets.py` with `GET /tickets` (all
+   tickets) and `GET /tickets/mismatches` (Business Question #2),
+   following the same `APIRouter(prefix=..., dependencies=[Depends(require_api_key)])`
+   + `Depends(get_knowledge_base_service)` pattern as `documents.py` —
+   import `require_api_key` from `api.security`, the same shared
+   function `documents.py` already uses.
+4. Register the new router in `main.py` with
+   `app.include_router(tickets.router)`.
+5. Confirm both new endpoints show up in Swagger UI (`/docs`) with a
+   padlock icon, and that they return `401` when tried without first
+   clicking **Authorize** — this should happen automatically from
+   `dependencies=[Depends(require_api_key)]` on the router, the same
+   mechanism `documents.py` uses. If a route is missing its padlock,
+   that's a sign it was added to the wrong router (or the dependency
+   list was left off), not a sign the check needs reimplementing.
+### Constraints
+ 
+- Don't modify the mismatch-finding function itself — if
+  `KnowledgeBaseService` is wired correctly, it should work completely
+  unchanged against data the service loads internally.
+- `@lru_cache` the ticket/user loading the same way `documents` is
+  cached — tickets and users shouldn't reload from disk on every
+  request either.
+- Reuse `require_api_key` from `api.security` as-is. Don't write a
+  second implementation inside `tickets.py`, and don't fall back to
+  checking `request.headers` by hand — the whole point of Step 4 was
+  making this check visible to FastAPI's schema and Swagger UI, and a
+  hand-rolled check inside one router's route functions would lose
+  that.
+### Research Prompts
+ 
+- FastAPI's own docs describe `Depends` as supporting *nested*
+  dependencies (a dependency that itself depends on another). Is there
+  a case for splitting `KnowledgeBaseService` into two smaller services
+  — one for documents, one for tickets — that each get injected
+  separately? What would the tradeoff be against today's one bigger
+  service?
+- Look up what `response_model_exclude_none` does on a FastAPI route
+  decorator, and think about a schema field where it might matter (a
+  ticket with no `related_document_id`, for instance).
+- `fastapi.security` also has `APIKeyQuery` (the key goes in the URL,
+  like `?api-key=...`) and `APIKeyCookie` (the key comes from a
+  cookie), not just the `APIKeyHeader` used today. Look up why putting
+  a secret key in a query string is generally considered the weakest
+  of the three options — think about everywhere a URL tends to get
+  logged or saved (browser history, web server access logs, shared
+  links) that a header value wouldn't be.
