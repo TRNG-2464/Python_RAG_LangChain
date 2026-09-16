@@ -9,7 +9,7 @@ to show to a client.
 from datetime import date
 from pydantic import BaseModel, ConfigDict
 
-from app.models import DocumentCategory
+from app.models import DocumentCategory, TicketPriority, TicketStatus
 
 class DocumentOut(BaseModel):
     """
@@ -31,3 +31,25 @@ class StaleDocumentOut(BaseModel):
     title: str
     category: DocumentCategory
     days_since_last_reviewed: int
+
+class TicketOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    title: str
+    priority: TicketPriority
+    status: TicketStatus
+    assignee_id: int
+    related_document_id: int | None
+
+class MismatchOut(BaseModel):
+    """
+    a mismatch isn't just one object, it's a ticket, a document, and
+    two users
+    """
+    ticket_id: int
+    ticket_title: str
+    assignee_name: str
+    assignee_team: str
+    owner_name: str
+    owner_team: str

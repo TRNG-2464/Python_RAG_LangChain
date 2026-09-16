@@ -9,7 +9,7 @@ import time
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
-from app.api.routers import documents
+from app.api.routers import documents, tickets
 
 # a hardcoded mock API key - a real deployment would pull this from an env variable or
 # a secrets manager, never from source code
@@ -56,3 +56,4 @@ def health_check() -> dict[str, str]:
 
 #register our routers here, so all endpoints are reachable
 app.include_router(documents.router)
+app.include_router(tickets.router)
