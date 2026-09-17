@@ -1,0 +1,56 @@
+Day 4 Phase B: Student Challenge 
+— The Same Treatment for `/tickets`
+ 
+**The Delta:** The demo added pagination and a get-by-id route to
+`/documents`, plus a full test suite behind it. Your challenge is to
+do the exact same three things for `/tickets`.
+ 
+### Requirements
+ 
+1. Add a `TicketPage` schema to `api\schemas.py`, following
+   `DocumentPage`'s exact shape (`items`, `total`, `skip`, `limit`).
+2. Update `GET /tickets` in `api\routers\tickets.py` to accept `skip`
+   and `limit` query parameters (same `Query(0, ge=0)` /
+   `Query(10, ge=1, le=100)` constraints as `/documents`) and return a
+   `TicketPage`.
+3. Add `GET /tickets/{ticket_id}` returning a `404` (via
+   `HTTPException`) when no ticket matches. **Pay close attention to
+   where you declare this relative to `/mismatches`** — the same
+   route-ordering rule from Step 4 applies here: `/mismatches` must be
+   declared *before* `/{ticket_id}`, for exactly the same reason
+   `/stale` had to come before `/{document_id}`.
+4. Add a `get_ticket_by_id(ticket_id)` method to `KnowledgeBaseService`
+   in `api\deps.py`, following `get_document_by_id`'s exact pattern.
+5. Create `tests\test_tickets.py` with `TestClient` integration tests
+   covering, at minimum: the `401` without a key, the paginated
+   envelope shape, a `404` for a nonexistent ticket id, a `200` for a
+   real one, and a regression test confirming `/tickets/mismatches`
+   still resolves correctly.
+### Constraints
+ 
+- Reuse `tests\conftest.py`'s existing `client` and `auth_headers`
+  fixtures — don't create a second, separate `TestClient` inside
+  `test_tickets.py`.
+- Don't skip the route-ordering requirement in #3 "to save time" — a
+  route added in the wrong order will pass most manual testing (since
+  a valid integer id never collides with the literal word
+  "mismatches") and then fail unpredictably the moment someone adds a
+  route whose name could also look like a plausible id.
+- Keep `total` in `TicketPage` reflecting the **full** ticket count,
+  not the current page's length — same rule `DocumentPage` follows.
+### Research Prompts
+ 
+- `pytest` supports **parametrized** tests (`@pytest.mark.parametrize`)
+  — a single test function run multiple times with different input
+  values. Look up its syntax and consider: could
+  `test_get_document_by_id_found` and a hypothetical
+  `test_get_ticket_by_id_found` be expressed as one parametrized test
+  instead of two nearly-identical ones?
+- FastAPI supports a `response_model_exclude_unset` option. Research
+  what problem it solves, and think about whether pagination
+  (`skip`/`limit` always having a value, even the default) would ever
+  interact with it.
+- Look up pytest's `-k` flag (run only tests whose name matches a
+  pattern) and `--lf` ("last failed" — re-run only what failed last
+  time). Both are worth knowing before a test suite grows past a
+  couple dozen tests and a full run stops being instant.
