@@ -53,3 +53,13 @@ class MismatchOut(BaseModel):
     assignee_team: str
     owner_name: str
     owner_team: str
+
+"""
+A pagination 'envelope' - the actual page of results, plus enough metadata(total, skip, limit)
+for a client to know whether or not there is more to fetch, without the need for a second request
+"""
+class DocumentPage(BaseModel):
+    items: list[DocumentOut]
+    total: int
+    skip: int
+    limit: int

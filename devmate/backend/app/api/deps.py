@@ -54,6 +54,13 @@ class KnowledgeBaseService:
             if document.category != DocumentCategory.POSTMORTEM
             and document.is_stale(threshold)
         ]
+
+    def get_document_by_id(self, document_id: int) -> Document | None:
+        for document in self._documents:
+            if document.id == document_id:
+                return document
+        return None
+    
     """This owns the ticket portion"""
     def get_all_tickets(self) -> list[Ticket]:
         return self._tickets
