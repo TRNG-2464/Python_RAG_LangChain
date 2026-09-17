@@ -68,6 +68,12 @@ class KnowledgeBaseService:
     def get_team_mismatches(self) -> list[tuple[Ticket, Document, User, User]]:
         return _find_team_mismatches(self._tickets, self._documents, self._users)
 
+    def get_ticket_by_id(self, ticket_id: int) -> Ticket | None:
+        for ticket in self._tickets:
+            if ticket.id == ticket_id:
+                return ticket
+        return None
+
 def _seed_users() -> list[User]:
     return[
         User(301, "A. Kim", team="SRE"),

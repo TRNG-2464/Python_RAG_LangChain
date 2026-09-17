@@ -63,3 +63,9 @@ class DocumentPage(BaseModel):
     total: int
     skip: int
     limit: int
+
+class TicketPage(BaseModel):
+    items: list[TicketOut]
+    total: int
+    skip: int
+    limit: int
