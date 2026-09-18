@@ -5,6 +5,7 @@ Dependency injection providers for the API layer
 from functools import lru_cache
 
 from app.ingestion.document_loader import load_documents_from_folder
+from app.analytics.workload import compute_team_workload
 from app.ingestion.ticket_loader import load_tickets_from_csv
 from app.models import Document, DocumentCategory, Ticket, User
 
@@ -73,6 +74,9 @@ class KnowledgeBaseService:
             if ticket.id == ticket_id:
                 return ticket
         return None
+
+    def get_team_workload_report(self) -> dict:
+        return compute_team_workload(self._tickets, self._users)
 
 def _seed_users() -> list[User]:
     return[

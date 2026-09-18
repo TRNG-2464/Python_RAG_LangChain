@@ -1,0 +1,63 @@
+Day 5 Phase B: Student Challenge 
+— Document Ownership & Staleness by Team
+ 
+**The Delta:** Today's demo answered one workload question about
+`Ticket`s. Your challenge is the same pattern — build a DataFrame,
+merge in `team`, group, compute with numpy — applied to `Document`s
+instead: for each team, how many documents does it own, and what
+share of those are stale?
+ 
+### Requirements
+ 
+1. Create `app\analytics\ownership.py`, following `workload.py`'s
+   shape: module-level constants, a `_documents_to_frame` /
+   `_users_to_frame` pair, and a `compute_document_ownership(documents,
+   users)` function returning a plain dict.
+2. A document counts as **stale** using the exact same rule
+   `get_stale_documents()` already applies elsewhere in this codebase:
+   `days_since_reviewed() > 90`, **and** its category is not
+   `POSTMORTEM`. Don't invent a second staleness definition — reuse
+   the existing one's logic.
+3. For each team that owns at least one document, compute: how many
+   documents it owns, how many of those are stale, and what
+   percentage of its owned documents are stale (`0` if it owns none —
+   don't divide by zero). Flag a team as a staleness risk if that
+   percentage is `50` or higher.
+4. Add `TeamDocumentOwnership` and `DocumentOwnershipReport` schemas to
+   `api\schemas.py`, following `TeamWorkload`/`WorkloadReport`'s exact
+   shape.
+5. Add `get_document_ownership_report()` to `KnowledgeBaseService`, and
+   a new `GET /analytics/document-ownership` route on the same
+   `analytics` router from today's demo (not a new router — add the
+   second route to the existing `api\routers\analytics.py`).
+### Constraints
+ 
+- Reuse the `analytics` router already created in Step 7 — don't
+  create a second `APIRouter` with its own `/analytics` prefix.
+- Guard the zero-denominator case (a team owning zero documents) the
+  same careful way Step 3's `total_load > 0` check does for workload —
+  don't let a team with no documents produce a `NaN` or a crash.
+- Before you trust whatever your AI assistant suggests for the
+  percentage/threshold logic, apply the same scrutiny Step 4
+  practiced: feed it a team with zero owned documents and a team
+  whose count is a value like `1` (where percentages round strangely)
+  and confirm the suggestion handles both correctly.
+### Research Prompts
+ 
+- `pd.crosstab(...)` can produce a team-by-status count table directly
+  from two Series, without an explicit `.groupby(...).size()` call.
+  Look up its signature and consider whether it would simplify (or
+  complicate) today's workload calculation if teams needed to be
+  broken down by ticket status *and* priority at once.
+- `numpy.percentile()` is a different, non-parametric way to flag
+  outliers than "more than one standard deviation above the mean" —
+  useful when a distribution isn't roughly bell-shaped. With only two
+  or three teams in this dataset the difference won't show up
+  clearly, but it's worth knowing the mean+std approach isn't the only
+  legitimate choice.
+- pandas' `.agg(...)` can compute multiple aggregations (like `count`
+  and `sum`) from a single `.groupby(...)` call, instead of calling
+  `.groupby(...)` twice the way `compute_team_workload` currently
+  does for `counts` and `load`. Look up its syntax and consider
+  whether combining them would make the function clearer or just more
+  compact.
