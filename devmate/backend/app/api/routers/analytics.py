@@ -5,7 +5,7 @@
 from fastapi import APIRouter, Depends
 
 from app.api.deps import KnowledgeBaseService, get_knowledge_base_service
-from app.api.schemas import WorkloadReport
+from app.api.schemas import WorkloadReport, DocumentOwnershipReport
 from app.api.security import require_api_key
 
 router = APIRouter(
@@ -26,3 +26,9 @@ def get_team_workload(
     """
     return WorkloadReport(**report)
 
+@router.get("/document-ownership", response_model=DocumentOwnershipReport)
+def get_document_ownership(
+    service: KnowledgeBaseService = Depends(get_knowledge_base_service)
+) -> DocumentOwnershipReport:
+    report = service.get_document_ownership_report()
+    return DocumentOwnershipReport(**report)

@@ -82,3 +82,14 @@ class WorkloadReport(BaseModel):
     total_open_tickets: int
     mean_load_score: float
     std_load_score: float
+
+class TeamDocumentOwnership(BaseModel):
+    team: str
+    owned_document_count: int
+    stale_document_count: int
+    stale_share_pct: float
+    is_stale_risk: bool
+
+class DocumentOwnershipReport(BaseModel):
+    teams: list[TeamDocumentOwnership]
+    total_documents: int

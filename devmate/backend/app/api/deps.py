@@ -6,6 +6,7 @@ from functools import lru_cache
 
 from app.ingestion.document_loader import load_documents_from_folder
 from app.analytics.workload import compute_team_workload
+from app.analytics.ownership import compute_document_ownership
 from app.ingestion.ticket_loader import load_tickets_from_csv
 from app.models import Document, DocumentCategory, Ticket, User
 
@@ -61,6 +62,9 @@ class KnowledgeBaseService:
             if document.id == document_id:
                 return document
         return None
+
+    def get_document_ownership_report(self) -> dict:
+        return compute_document_ownership(self._documents, self._users)
     
     """This owns the ticket portion"""
     def get_all_tickets(self) -> list[Ticket]:
