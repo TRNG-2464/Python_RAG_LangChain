@@ -55,3 +55,27 @@ def summarize_tickets(title: str, priority: str, status: str) -> str:
         "priority": priority,
         "status": status
     })
+
+_document_description_prompt = ChatPromptTemplate.from_messages([
+    (
+        "system",
+        "You are Devmate, an internal engineering assistant for Northbeam."
+        "Write exactly one plain English sentence describing the given document -"
+        "what it covers, and whether it looks due for review given how long it's been"
+        "since its last review. Do not invent details that aren't provided."
+    ),
+    (
+        "human",
+        "Title: {title}\nCategory: {category}\n"
+        "Days since last reviewed: {days_since_reviewed}",
+    ),
+])
+
+document_description_chain = _document_description_prompt | _llm | StrOutputParser()
+
+def describe_document(title: str, category: str, days_since_reviewed: int) -> str:
+    return document_description_chain.invoke({
+        "title": title,
+        "category": category,
+        "days_since_reviewed": days_since_reviewed
+    })
