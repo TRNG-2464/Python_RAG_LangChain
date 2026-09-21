@@ -1,0 +1,58 @@
+Day 6 Phase B: Student Challenge 
+— Plain-English Document Descriptions
+ 
+**The Delta:** Today's demo built one chain for `Ticket`s. Your
+challenge is the same pattern — a new `ChatPromptTemplate`, reusing
+the *same* shared `_llm` instance — applied to `Document`s: a
+one-sentence, plain-English note about what a document covers and
+whether it looks due for review.
+ 
+### Requirements
+ 
+1. In `app\ai\chains.py`, add a `_document_description_prompt`
+   (`ChatPromptTemplate.from_messages([...])`) with a system message
+   establishing the same "don't invent details" rule as Step 3's
+   prompt, and a human message templated with a document's `title`,
+   `category`, and `days_since_reviewed`.
+2. Compose `document_description_chain = _document_description_prompt
+   | _llm | StrOutputParser()` — reuse the module-level `_llm` from
+   Step 2; do not construct a second `ChatOllama`.
+3. Add a `describe_document(title, category, days_since_reviewed)`
+   function, following `summarize_ticket`'s exact shape.
+4. Create `scripts\day6_challenge.py`, following `day6_demo.py`'s
+   pattern: load real documents via `load_documents_from_folder`, call
+   `describe_document(...)` for each, print the result.
+### Constraints
+ 
+- One `ChatOllama` instance for the whole module — both chains talk
+  to it. If a real project ever needed genuinely different model
+  settings per chain (a higher `temperature` for something more
+  creative, say), that would be a deliberate second instance with a
+  clear reason, not an accident from copy-pasting Step 2's setup a
+  second time.
+- The prompt must explicitly instruct the model not to invent
+  information — don't drop this instruction "to save time"; it's the
+  seed of a theme (grounding an LLM's answer in only what it's
+  actually given) that becomes the central design constraint once
+  retrieval is introduced.
+- Don't pass a document's full `body` into the prompt today — only
+  `title`, `category`, and `days_since_reviewed`. Summarizing full
+  document content is deliberately saved for later this week, once
+  chunking and retrieval exist to handle documents too long to paste
+  directly into a prompt.
+### Research Prompts
+ 
+- `MessagesPlaceholder` (also from `langchain_core.prompts`) lets a
+  `ChatPromptTemplate` include a variable-length list of prior
+  messages, not just fixed system/human turns — look up its syntax
+  and consider what it would take to let `summarize_ticket` remember
+  a previous question about the same ticket.
+- Every LCEL `Runnable` (a chain included) supports `.stream(...)` in
+  addition to `.invoke(...)` — look up the difference, and what a
+  chain's output looks like consumed via `.stream(...)` instead.
+- `FakeListLLM` (`langchain_core.language_models.fake`) returns
+  canned responses from a fixed list instead of calling a real model —
+  useful for testing a chain's prompt-formatting and parsing logic
+  without Ollama running at all. Consider what a `pytest` test for
+  `summarize_ticket` might look like if it swapped `_llm` for a
+  `FakeListLLM` instead of requiring a real, running local model.
