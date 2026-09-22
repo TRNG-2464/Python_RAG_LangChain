@@ -1,0 +1,78 @@
+Day 7 Phase B: Student Challenge 
+— A Document Health Assistant
+ 
+**The Delta:** Today's demo built three capabilities around `Ticket`s.
+Your challenge is the same three patterns — structured output,
+conversation memory, tool calling — applied to `Document`s: an
+independent staleness assessment, follow-up questions about a
+specific document, and the ability to look up who owns a document
+when asked.
+ 
+### Requirements
+ 
+1. **Structured output.** In `app\ai\chains.py`, add a
+   `DocumentHealthAssessment` (`BaseModel`) with fields for whether the
+   document looks like a stale-risk, a one-word or short recommended
+   action, and a one-sentence reasoning field — built the same way
+   `TicketTriageSuggestion` was, from a `ChatPromptTemplate` piped into
+   `_llm.with_structured_output(...)`. Base the assessment only on a
+   document's `title`, `category`, and `days_since_reviewed` — the
+   same three fields `describe_document` already uses, not the actual
+   `is_stale`/`is_stale_risk` business rule from the analytics layer.
+   Add a `suggest_document_health(title, category, days_since_reviewed)`
+   function mirroring `suggest_ticket_triage`'s shape.
+2. **Conversation memory.** Add a `_document_followup_prompt` /
+   `document_followup_chain` / `ask_document_followup(document_context,
+   history, question)` set, mirroring the ticket version's shape
+   exactly — same `MessagesPlaceholder("history")` pattern, same
+   caller-owns-the-list contract.
+3. **Tool calling.** Add a `look_up_document_owner(owner_id: int) ->
+   str` tool (`@tool`-decorated, wrapping `User.find_by_id`, following
+   `look_up_related_document`'s exact shape and error-handling for a
+   missing id), bind it to `_llm` as a new `_llm_with_owner_tool`
+   variant, and add an `ask_about_document_owner(title, owner_id,
+   question)` function mirroring `ask_about_ticket_document`'s
+   single-step tool-calling loop.
+4. Create `scripts\day7_challenge.py`, following `day7_demo.py`'s
+   pattern: load real documents via `load_documents_from_folder`, pick
+   one real document, and exercise all three functions against it the
+   same way the demo script did for a ticket.
+### Constraints
+ 
+- Still one shared `_llm` for plain calls — `_llm_with_tools` from the
+  demo and your new `_llm_with_owner_tool` are both *bound variants*
+  of that same instance, not new `ChatOllama(...)` constructions.
+- The structured-output assessment must be independent of the actual
+  business rule (`category != POSTMORTEM` and `days_since_reviewed >
+  90`, from earlier work) — don't have the model just recompute that
+  exact formula; the point is comparing an LLM's independent judgment
+  against the codebase's real, deterministic rule, the same relationship
+  today's ticket triage suggestion has to the ticket's actual recorded
+  priority.
+- `ask_document_followup` must be stateless, exactly like
+  `ask_ticket_followup` — no chain-internal storage of conversation
+  history anywhere.
+- Both tool functions must handle a not-found id the same way
+  (`look_up_related_document`'s `f"No document found with id
+  {document_id}."` pattern) rather than raising an unhandled exception
+  the model has no way to recover from.
+### Research Prompts
+ 
+- `bind_tools(...)` accepts a `tool_choice` argument on some
+  providers, letting code force a specific tool to be called rather
+  than leaving the decision to the model — look into whether
+  `ChatOllama` currently supports this, and what it's useful for
+  beyond today's "let the model decide" pattern.
+- `.with_structured_output(..., include_raw=True)` returns both the
+  raw `AIMessage` and the parsed object, instead of just the parsed
+  object — consider a situation where seeing the raw message
+  (token usage, whether a tool call happened instead of a direct
+  parse) would matter for debugging a structured-output chain that
+  isn't behaving as expected.
+- A tool function can raise an exception instead of returning a
+  string (a malformed id, a lookup that fails partway through) —
+  research what LangChain does with an exception raised inside a
+  `@tool`-decorated function during `.invoke(tool_call)`, and what
+  that implies for whether today's simple `if document is None:
+  return "..."` pattern is actually sufficient for a tool a model
+  might call with an argument it partially made up.
