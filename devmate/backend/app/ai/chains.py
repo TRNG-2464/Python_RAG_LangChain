@@ -13,7 +13,7 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_ollama import ChatOllama
 
-from app.models import Document
+from app.models import Document, User
 
 """
 Once shared ChatOllama instance for this entire module - every chain below it
@@ -214,5 +214,130 @@ def ask_about_ticket_document(
 
     if ai_message.tool_calls:
         ai_message = _llm_with_tools.invoke(messages)
+
+    return ai_message.content
+
+##PHASE B STUDENT CHALLENGE ANSWER KEY
+class DocumentHealthAssessment(BaseModel):
+    """
+    Phase B's version of TicketTriageSuggestion: a typed, independent
+    read on a document's health, built only from title/category/
+    days_since_reviewed - the same three fields describe_document
+    already uses - and deliberately NOT the actual is_stale/
+    is_stale_risk business rule from the analytics layer.
+    """
+    is_stale_risk: bool = Field(
+        description="True if this document looks like it may be stale and worth reviewing"
+    )
+    recommended_action: str = Field(
+        description="A short (few-word) recommended next step, e.g. "
+        "'Re-review soon' or 'No action needed'"
+    )
+    reasoning: str = Field(
+        description="One sentence explaining the assessment, referencing only "
+        "the title, category, and days_since_reviewed given"
+    )
+
+
+_document_health_prompt = ChatPromptTemplate.from_messages([
+    (
+        "system",
+        "You are DevMate, an internal engineering assistant for "
+        "Northbeam. Given a document's title, category, and days "
+        "since it was last reviewed, assess whether it looks like a "
+        "stale-risk and recommend a short next step. Do not invent "
+        "details that aren't provided.",
+    ),
+    (
+        "human",
+        "Title: {title}\nCategory: {category}\n"
+        "Days since last reviewed: {days_since_reviewed}",
+    ),
+])
+
+document_health_chain = _document_health_prompt | _llm.with_structured_output(DocumentHealthAssessment)
+
+
+def suggest_document_health(title: str, category: str, days_since_reviewed: int) -> DocumentHealthAssessment:
+    """Thin, testable wrapper - mirrors suggest_ticket_triage's exact shape."""
+    return document_health_chain.invoke({
+        "title": title,
+        "category": category,
+        "days_since_reviewed": days_since_reviewed,
+    })
+
+
+_document_followup_prompt = ChatPromptTemplate.from_messages([
+    (
+        "system",
+        "You are DevMate, an internal engineering assistant for "
+        "Northbeam, answering follow-up questions about the document "
+        "below. Use the conversation history to answer without asking "
+        "the engineer to repeat information already given. Do not "
+        "invent details that aren't provided.\n\nDocument: {document_context}",
+    ),
+    MessagesPlaceholder("history"),
+    ("human", "{question}"),
+])
+
+document_followup_chain = _document_followup_prompt | _llm | StrOutputParser()
+
+
+def ask_document_followup(document_context: str, history: list, question: str) -> str:
+    """
+    Thin wrapper - mirrors ask_ticket_followup's exact shape.
+    Stateless; `history` is owned and appended to by the caller.
+    """
+    return document_followup_chain.invoke({
+        "document_context": document_context,
+        "history": history,
+        "question": question,
+    })
+
+
+@tool
+def look_up_document_owner(owner_id: int) -> str:
+    """Look up a Northbeam user by id and return their name and team."""
+    user = User.find_by_id(owner_id)
+    if user is None:
+        return f"No user found with id {owner_id}."
+    return f"User {owner_id}: {user.name} (team: {user.team})"
+
+
+# A third bound variant of the same shared _llm - still not a new
+# ChatOllama instance. Each bind_tools(...) call wraps _llm with a
+# different tool's schema attached, independent of _llm_with_tools.
+_llm_with_owner_tool = _llm.bind_tools([look_up_document_owner])
+
+
+def ask_about_document_owner(title: str, owner_id: int, question: str) -> str:
+    """
+    A single-step tool-calling loop mirroring ask_about_ticket_document
+    exactly, but for a document's owner instead of its related document.
+    """
+    messages = [
+        SystemMessage(
+            content=(
+                "You are DevMate, an internal engineering assistant for "
+                "Northbeam. You have a tool to look up a document's "
+                "owner by id when you need their name or team to answer "
+                "a question. Do not invent details that aren't provided "
+                "or returned by the tool."
+            )
+        ),
+        HumanMessage(
+            content=f"Document: {title} (owner_id={owner_id}). {question}"
+        ),
+    ]
+
+    ai_message = _llm_with_owner_tool.invoke(messages)
+    messages.append(ai_message)
+
+    for tool_call in ai_message.tool_calls:
+        tool_result = look_up_document_owner.invoke(tool_call)
+        messages.append(tool_result)
+
+    if ai_message.tool_calls:
+        ai_message = _llm_with_owner_tool.invoke(messages)
 
     return ai_message.content
