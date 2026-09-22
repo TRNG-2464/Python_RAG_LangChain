@@ -15,8 +15,7 @@ This project builds **LineMate**, an internal kitchen operations
 assistant that starts as a plain REST service over Hearthline's
 documents and tickets, then grows into a retrieval-augmented assistant
 that can answer kitchen operations questions grounded in Hearthline's
-own documents — and, ultimately, reason about taking action on a
-team's behalf.
+own documents.
 
 > **A naming note worth stating explicitly:** in a real kitchen, the
 > word "ticket" already means something specific — the slip of paper
@@ -44,12 +43,6 @@ and later in plain language — the following:
 * **Grounded Q&A:** *Given a plain-language kitchen operations
   question, what's the best answer LineMate can give, backed by
   citations to the actual internal documents it came from?*
-* **Proactive Triage:** *Can LineMate autonomously find and summarize
-  the highest-priority open tickets, without a manager manually
-  searching for them?*
-* **Safe Automation:** *Before LineMate takes any action that changes
-  real data — drafting a supply order, escalating a food-safety
-  incident — how does a human stay in control?*
 
 ---
 
@@ -150,20 +143,8 @@ localhost.
   specific documents it drew from.
 * Conversation memory so a follow-up question doesn't need to repeat
   context already given.
-
-### D. Agentic Automation (LCEL, agents, LangGraph, MCP)
-
 * Formalize the retrieval chain using LCEL for composability and
   reuse.
-* Extend LineMate from answering questions to planning and executing
-  multi-step tasks — answering the Proactive Triage question — with a
-  human-in-the-loop approval step before any action that changes real
-  data, answering the Safe Automation question.
-* Model the agent's reasoning explicitly as a state graph (LangGraph)
-  rather than an implicit loop, so its decisions are inspectable.
-* Expose LineMate's tools via the Model Context Protocol (MCP) so
-  other MCP-compatible clients can use them, and consume external MCP
-  tools in turn.
 
 ---
 
@@ -174,11 +155,10 @@ localhost.
 | **Backend / API** | Python 3.11, FastAPI, Pydantic v2 | Localhost |
 | **Testing** | pytest | Localhost |
 | **Analytics** | pandas, numpy | Localhost |
-| **LLM orchestration** | LangChain (LCEL), LangGraph | Localhost |
+| **LLM orchestration** | LangChain (LCEL) | Localhost |
 | **LLM** | Ollama, running Llama 3.2 (3B) or Mistral 7B locally | Localhost (no API key, no rate limit) |
 | **Embeddings** | Ollama's `nomic-embed-text` | Localhost |
 | **Vector store** | Chroma, self-hosted embedded mode | Localhost (in-process) |
-| **Tool integration** | MCP SDK | Localhost |
 | **AI-assisted coding** | GitHub Copilot Free | Local editor |
 
 No cloud tier — this project is designed to run entirely on free and
