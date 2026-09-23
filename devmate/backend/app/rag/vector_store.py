@@ -71,3 +71,15 @@ def load_vector_store(persist_directory: str = PERSIST_DIRECTORY) -> Chroma:
         persist_directory=persist_directory,
         embedding_function=_embeddings
     )
+
+def search_documents(
+        query: str, k: int = 3, category: str | None = None
+) -> list[LCDocument]:
+    """
+    this searches the already-persisted collection - never rebuilds it.
+    uses load_vector_store function.
+    """
+    vector_store=load_vector_store()
+    if category is not None:
+        return vector_store.similarity_search(query, k=k, filter={"category": category})
+    return vector_store.similarity_search(query, k=k)
