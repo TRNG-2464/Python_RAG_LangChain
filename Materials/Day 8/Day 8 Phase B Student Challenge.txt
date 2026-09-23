@@ -1,0 +1,62 @@
+Day 8 Phase B: Student Challenge 
+— Querying an Already-Persisted Store
+ 
+**The Delta:** Today's demo builds a vector store and immediately
+searches it in the same script, in the same process. Your challenge
+is to prove the persistence actually works the way it's supposed to:
+write a *separate* script that searches the store built by today's
+demo **without ever rebuilding it** — the way a real application would
+query a vector store that was populated once, potentially hours or
+days earlier, by a completely different process.
+ 
+### Requirements
+ 
+1. In `app\rag\vector_store.py`, add a `search_documents(query: str,
+   k: int = 3, category: str | None = None) -> list[LCDocument]`
+   function that calls `load_vector_store()` internally — **not**
+   `build_vector_store()` — and runs a similarity search against the
+   result.
+2. When `category` is given, the search must be filtered to only that
+   category using Chroma's `filter` parameter on `.similarity_search(
+   ...)`; when `category` is `None`, the search must run unfiltered
+   (do not pass a filter dict with a `None` value inside it — omit the
+   `filter` argument entirely in that case).
+3. Create `scripts\day8_challenge.py` that imports only
+   `search_documents` (not `build_vector_store`, not
+   `load_documents_from_folder`) and calls it twice: once unfiltered,
+   once filtered to a specific category, printing each result's
+   `title`, `category`, and chunk text.
+### Constraints
+ 
+- `scripts\day8_challenge.py` must be runnable **after**
+  `scripts\day8_demo.py` has already populated `chroma_db\` once, and
+  must not re-ingest or rebuild anything itself — if it works only by
+  accident because `build_vector_store` also happens to get called
+  somewhere in its own import chain, that defeats the point of the
+  exercise.
+- Reuse `PERSIST_DIRECTORY` and the module-level `_embeddings`
+  instance already defined in `vector_store.py` — don't hardcode a
+  second path string or construct a second `OllamaEmbeddings` instance
+  inside `search_documents`.
+- `search_documents`'s return type and the shape of what it returns
+  should match what `vector_store.similarity_search(...)` itself
+  returns directly — don't unpack or reformat the results inside this
+  function; let the calling script decide how to display them.
+### Research Prompts
+ 
+- `.similarity_search_with_score(...)` returns each result alongside a
+  float score, exactly like `.similarity_search(...)` but paired with
+  a number — research what that number actually represents for
+  Chroma's default distance metric, and specifically whether a
+  *lower* or a *higher* score means "more similar." Getting this
+  backwards silently reverses which results look best.
+- Chroma's `filter` parameter accepts more than simple equality — look
+  into what operators (structured similarly to `{"category": {"$eq":
+  "Runbook"}}`, or combining conditions with something like `"$and"`)
+  are available for filtering on more than one metadata field at once.
+- Consider what happens if `build_vector_store` is called a second
+  time against a `persist_directory` that already has data in it from
+  a previous run — does the corpus grow (duplicate chunks alongside
+  the originals), get replaced, or raise an error? This matters
+  directly for how a real ingestion pipeline would need to handle
+  being run more than once against the same data.
