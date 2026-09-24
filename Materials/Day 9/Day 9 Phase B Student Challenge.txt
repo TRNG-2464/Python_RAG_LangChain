@@ -1,0 +1,58 @@
+Day 9 Phase B: Student Challenge 
+— Filtering Results by a Confidence Threshold
+ 
+**The Delta:** Both of today's retrievers always return exactly *k*
+results, no matter how weak the worst of those matches actually is.
+Your challenge is to build a retriever that can return *fewer* than
+*k* results — including zero — when nothing in the corpus is a
+confident enough match, using `search_type="similarity_score_threshold"`.
+ 
+### Requirements
+ 
+1. In `app\rag\retriever.py`, add a `get_threshold_retriever(
+   score_threshold: float, k: int = DEFAULT_K)` function that calls
+   `load_vector_store()` (never `build_vector_store()`) and returns a
+   retriever built with `search_type="similarity_score_threshold"` and
+   a `search_kwargs` dict containing both `score_threshold` and `k`.
+2. Create `scripts\day9_challenge.py` that imports only
+   `get_threshold_retriever` and `format_retrieved_context` (not
+   `get_similarity_retriever`, not `get_diverse_retriever`) and calls
+   `get_threshold_retriever` twice against the same query: once with a
+   lenient (low) `score_threshold`, once with a strict (high) one —
+   printing how many results come back each time, and each result's
+   title.
+### Constraints
+ 
+- `scripts\day9_challenge.py` must be runnable **after**
+  `scripts\day8_demo.py` has already populated `chroma_db\` once, the
+  same requirement every script touching the vector store has had
+  since it was first built.
+- `get_threshold_retriever` must not hardcode a `score_threshold`
+  value inside itself — the caller decides how strict to be, the same
+  way `k` is already caller-controlled on every other retriever
+  function in this file.
+- Do not catch or suppress any error raised when `score_threshold` is
+  missing or invalid — if `search_type="similarity_score_threshold"`
+  is used without a `score_threshold` in `search_kwargs`, LangChain
+  raises on construction, and that's the correct, honest behavior to
+  leave alone, not something to work around.
+### Research Prompts
+ 
+- `search_type="similarity_score_threshold"` filters using a
+  **relevance score** (documented as a 0–1 scale, where a value closer
+  to `1.0` means more similar) — a completely different number, on a
+  different scale, from the raw distance `.similarity_search_with_score(...)`
+  returns (where, as established yesterday, *lower* means more
+  similar). Research exactly how these two numbers relate to each
+  other for this project's default-configured (L2-distance) Chroma
+  collection, and be specific about why treating them as
+  interchangeable would produce exactly backwards filtering.
+- What happens when a `score_threshold` is strict enough that *zero*
+  documents clear it? Does `get_threshold_retriever(...).invoke(query)`
+  return an empty list, or raise an error? This matters for how any
+  code calling this retriever later needs to handle a "nothing
+  confident enough was found" outcome versus a real failure.
+- Consider what a reasonable default `score_threshold` might look like
+  for a real, much larger document corpus, versus this project's
+  current five-chunk one — and why a threshold tuned against a tiny
+  dataset might behave completely differently once the corpus grows.
