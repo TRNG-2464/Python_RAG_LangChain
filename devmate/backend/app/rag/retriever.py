@@ -45,4 +45,17 @@ def format_retrieved_context(documents: list[LCDocument]) -> str:
         f"[Source: {document.metadata['title']}]\n{document.page_content}"
         for document in documents
     )
-   
+
+
+#Phase B student challenge
+def get_threshold_retriever(score_threshold: float, k: int = DEFAULT_K):
+    """
+    Returns fewer than K results - including zero - when nothing in the 
+    db clears the score_threshold, rather than always returning k, regardless
+    of how weak the worst match is.
+    """
+    vector_store = load_vector_store()
+    return vector_store.as_retriever(
+        search_type="similarity_score_threshold",
+        search_kwargs={"score_threshold": score_threshold, "k": k},
+    )
