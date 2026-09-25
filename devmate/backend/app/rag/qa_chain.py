@@ -15,7 +15,8 @@ from langchain_ollama import ChatOllama
 from app.rag.retriever import (
     DEFAULT_K,
     format_retrieved_context,
-    get_similarity_retriever
+    get_similarity_retriever,
+    get_threshold_retriever
 )
 
 #set up our chatollama instance
@@ -76,6 +77,22 @@ def answer_question(question: str, k: int = DEFAULT_K) -> AskResult:
     """
     retriever = get_similarity_retriever(k=k)
     documents = retriever.invoke(question)
+    context = format_retrieved_context(documents)
+    answer = rag_answer_chain.invoke({"context": context, "question": question})
+    return AskResult(answer=answer, sources=_citation_titles(documents))
+
+
+#PHASE B STUDENT CHALLENGE
+NOT_CONFIDENT_ANSWER = (
+    "I don't have enough confidence in Northbeam's documents to answer that question. " \
+    "Try rephrasing it, or check with the relevant team directly. "
+)
+
+def answer_question_strict(question: str, score_threshold: float, k: int = DEFAULT_K) -> AskResult:
+    retriever = get_threshold_retriever(score_threshold=score_threshold, k=k)
+    documents = retriever.invoke(question)
+    if not documents:
+        return AskResult(answer=NOT_CONFIDENT_ANSWER, sources=[])
     context = format_retrieved_context(documents)
     answer = rag_answer_chain.invoke({"context": context, "question": question})
     return AskResult(answer=answer, sources=_citation_titles(documents))

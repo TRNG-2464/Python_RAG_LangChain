@@ -100,3 +100,7 @@ class AskRequest(BaseModel):
 class AskResponse(BaseModel):
     answer: str
     sources: list[str]
+
+class AskStrictRequest(BaseModel):
+    question: str
+    score_threshold: float
