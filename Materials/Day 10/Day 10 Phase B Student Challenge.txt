@@ -1,0 +1,77 @@
+Day 10 Phase B: Student Challenge 
+— Refusing to Guess
+ 
+**The Delta:** `answer_question` always calls the LLM, even when
+`get_similarity_retriever` hands back results that are a genuinely
+poor match for the question — the LLM might reproduce that weak
+context faithfully, or it might quietly fall back on outside knowledge
+despite the prompt's instructions not to, and there's no way to tell
+which happened just from the response shape. Yesterday's threshold
+retriever exists for exactly this situation. Your challenge is to use
+it here: skip the LLM call entirely, and return a fixed, honest
+"not confident enough" answer, whenever nothing in the corpus clears a
+given confidence bar.
+ 
+### Requirements
+ 
+1. In `app\rag\qa_chain.py`, add `get_threshold_retriever` to the
+   existing `from app.rag.retriever import (...)` block at the top of
+   the file (Step 1 only imported `get_similarity_retriever` from that
+   module — this challenge needs its sibling too), then add an
+   `answer_question_strict(question: str, score_threshold: float, k:
+   int = DEFAULT_K) -> AskResult` function that uses
+   `get_threshold_retriever` instead of `get_similarity_retriever`. If
+   the threshold retriever returns zero documents, return an
+   `AskResult` with a fixed, clearly-worded "not enough information"
+   answer and an **empty** `sources` list — **without calling the LLM
+   at all** in that case. Otherwise, follow the exact same
+   retrieve-format-generate-cite path `answer_question` already
+   follows.
+2. Add a new `AskStrictRequest` schema to `app\api\schemas.py`, with
+   `question: str` and `score_threshold: float`. In
+   `app\api\routers\ask.py`, add `AskStrictRequest` to the existing
+   `from app.api.schemas import (...)` line and `answer_question_strict`
+   to the existing `from app.rag.qa_chain import (...)` line (both
+   currently only import what Step 4 needed), then add a new `POST
+   /ask/strict` route that calls `answer_question_strict` and returns
+   the same `AskResponse` shape `/ask` already uses.
+
+### Constraints
+ 
+- The zero-result path must genuinely skip the LLM call — not catch an
+  exception from calling it, not call it and discard the result. If
+  `get_threshold_retriever(...).invoke(question)` returns `[]`,
+  `rag_answer_chain.invoke(...)` should never execute for that request
+  at all.
+- The fixed "not enough information" answer text must not sound like
+  it came from the retrieved context — it should read as DevMate being
+  honest about a gap, not as a fabricated answer that happens to be
+  short.
+- `/ask/strict` must reuse `answer_question_strict` and
+  `get_threshold_retriever` — it must not reimplement threshold
+  filtering, and must not fall back to `get_similarity_retriever`.
+
+### Research Prompts
+ 
+- Handing an LLM someone else's text and asking it to answer questions
+  using only that text is exactly the setup **prompt injection**
+  exploits: a document crafted to contain instructions rather than
+  just information could, in principle, try to hijack the model's
+  behavior when that document gets pulled into a prompt's context.
+  Research what's actually recommended, right now, for treating
+  retrieved document content as untrusted input in a RAG system —
+  and be specific about why this risk is real even though every
+  document in this project's own small corpus is currently trusted,
+  hand-authored content.
+- Today's threshold retriever either answers confidently or refuses
+  entirely — there's no middle ground. Research how real production
+  RAG systems handle the middle case: a moderately-confident match
+  that's worth answering from, but worth flagging as uncertain rather
+  than presented with the same confidence as a strong match. What
+  would change about `AskResponse`'s shape to support that?
+- Every call made today is synchronous and blocking — `.invoke(...)`
+  waits for the full response before returning anything. Research
+  LangChain's `.stream()` method and FastAPI's `StreamingResponse`,
+  and consider what would need to change about `answer_question` for
+  `/ask` to start returning tokens to a client as they're generated,
+  rather than waiting for the entire answer to finish first.

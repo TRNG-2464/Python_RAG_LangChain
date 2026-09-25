@@ -93,3 +93,10 @@ class TeamDocumentOwnership(BaseModel):
 class DocumentOwnershipReport(BaseModel):
     teams: list[TeamDocumentOwnership]
     total_documents: int
+
+class AskRequest(BaseModel):
+    question: str
+
+class AskResponse(BaseModel):
+    answer: str
+    sources: list[str]
