@@ -104,3 +104,7 @@ class AskResponse(BaseModel):
 class AskStrictRequest(BaseModel):
     question: str
     score_threshold: float
+
+class AskConversationRequest(BaseModel):
+    conversation_id: str
+    question: str

@@ -201,3 +201,16 @@ def ask_with_memory(memory: ConversationMemory, question: str) -> AskResult:
     })
     record_turn(memory, question, result["answer"])
     return AskResult(answer=result["answer"], sources=_citation_titles(result["documents"]))
+
+
+#Day 11 Phase B student challenge answer key
+_conversations: dict[str, ConversationMemory] = {}
+
+def get_conversation_memory(conversation_id: str) -> ConversationMemory:
+    """
+    Returns the existing ConversationMemory for this conversation's id, creating a new one
+    on first use. 
+    """
+    if conversation_id not in _conversations:
+        _conversations[conversation_id] = ConversationMemory()
+    return _conversations[conversation_id]
