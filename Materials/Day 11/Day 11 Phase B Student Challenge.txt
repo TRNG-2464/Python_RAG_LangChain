@@ -1,0 +1,60 @@
+Day 11 Phase B: Student Challenge
+ — A Conversational Endpoint
+ 
+**The Delta:** `ask_with_memory` works, but only from a script holding
+its own local `ConversationMemory` variable. A real client — a web
+frontend, another service — can't hold Python state between two
+separate HTTP requests. Your challenge is to make conversations
+addressable over HTTP: a client sends a `conversation_id` alongside
+each question, and the server keeps that conversation's memory keyed
+by that id, so the *next* request with the same id continues the same
+conversation.
+ 
+### Requirements
+ 
+1. In `app\rag\qa_chain.py`, add a module-level `_conversations: dict[str,
+   ConversationMemory] = {}` and a `get_conversation_memory(conversation_id:
+   str) -> ConversationMemory` function that returns the existing entry
+   for that id, creating a new `ConversationMemory` on first use.
+2. Add an `AskConversationRequest` schema to `app\api\schemas.py`, with
+   `conversation_id: str` and `question: str`.
+3. In `app\api\routers\ask.py`, add `AskConversationRequest` to the
+   existing `from app.api.schemas import (...)` line and
+   `ask_with_memory`, `get_conversation_memory` to the existing `from
+   app.rag.qa_chain import (...)` line, then add a `POST
+   /ask/conversation` route that looks up the conversation's memory by
+   id, calls `ask_with_memory`, and returns the same `AskResponse`
+   shape every other `/ask` route already uses.
+### Constraints
+ 
+- `get_conversation_memory` and `ask_with_memory` must be reused, not
+  reimplemented — the route function should be a thin pass-through,
+  the same shape every other route in `ask.py` already is.
+- No database, no file, no external cache — an in-memory dict is the
+  entire, explicit scope of this challenge's persistence.
+- Two requests with the same `conversation_id` must reuse the *same*
+  `ConversationMemory` instance — not two separate ones that happen to
+  share an id.
+### Research Prompts
+ 
+- This registry is lost the instant the process restarts, and shared
+  with no locking across every request the running process ever
+  handles for a given id. Research what LangGraph's checkpointer-based
+  persistence actually provides that this dict-based approach doesn't
+  — durability across restarts, and safe concurrent access — and be
+  specific about which of those two problems is more likely to bite
+  first in a real, moderately-trafficked deployment of something built
+  this way.
+- `memory.summary` itself has no size limit — a conversation running
+  for hundreds of turns would keep folding new overflow into an
+  ever-growing summary string. Research how a real system might handle
+  a summary that's itself gotten too long — is periodically
+  re-summarizing the summary a documented, sound technique, or does it
+  risk compounding information loss each time it happens?
+- Two requests carrying the same `conversation_id`, arriving at
+  nearly the same moment, would both call `get_conversation_memory`
+  and could both read-then-write `_conversations` at overlapping
+  times. Research what could actually go wrong here under Python's
+  GIL versus under a fully async, multi-worker FastAPI deployment, and
+  what a minimal fix (without reaching for a full database) might look
+  like.
