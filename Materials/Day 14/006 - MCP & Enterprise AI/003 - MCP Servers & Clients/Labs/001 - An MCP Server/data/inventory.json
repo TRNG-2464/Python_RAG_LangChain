@@ -1,0 +1,6 @@
+{
+  "WID-100": {"name": "Widget", "on_hand": 42, "bin": "A-03"},
+  "GAD-200": {"name": "Gadget", "on_hand": 0, "bin": "B-11"},
+  "SPR-300": {"name": "Sprocket", "on_hand": 7, "bin": "A-07"},
+  "FLG-400": {"name": "Flange", "on_hand": 125, "bin": "C-02"}
+}
